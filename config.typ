@@ -2,7 +2,7 @@
 
 #let template = tufted.tufted-web.with(
   header-links: (
-    "/": "Home",
+    "/": "主页",
     "/拥抱深渊/": "拥抱深渊",
   ),
   title: "HPDreams",

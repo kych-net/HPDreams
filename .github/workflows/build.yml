@@ -1,0 +1,52 @@
+name: 构建并发布网页
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-web
+  cancel-in-progress: true
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取出源码
+        uses: actions/checkout@v7
+
+      # 使用与本地一致的 Typst 版本，并缓存 @preview 依赖包
+      - name: 安装 Typst
+        uses: typst-community/setup-typst@v5
+        with:
+          typst-version: 0.15.1
+          cache-dependency-path: |
+            config.typ
+            content/**/*.typ
+
+      # 正文是中文，runner 上需要 CJK 字体才能正确排版
+      - name: 安装中文字体
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+
+      # 复用仓库自带的 Makefile：content 下的 .typ 编译到 _site
+      - name: 编译 HTML
+        run: make html
+
+      # 让 GitHub Pages 跳过 Jekyll 处理
+      - name: 添加 .nojekyll
+        run: touch _site/.nojekyll
+
+      - name: 发布到 web 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./_site
+          publish_branch: web
+          commit_message: "deploy: ${{ github.sha }}"
